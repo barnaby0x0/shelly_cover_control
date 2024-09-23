@@ -86,18 +86,6 @@ add_percent() {
 
 # Main script logic
 case $1 in
-  get_status)
-    case $2 in
-      pretty)
-        get_status | jq '.'
-        ;;
-      *) get_status
-        ;;
-    esac
-    ;;
-  get_configuration)
-    get_configuration
-    ;;
   set_position)
     if [[ "$2" =~ ^[0-9]+$ ]]; then
       if (( $2 >= 0 && $2 <= 100 )); then
@@ -128,6 +116,29 @@ case $1 in
   half)
     add_percent 2
     ;;
+  set)
+    case $2 in
+      pos)
+        if [[ "$3" =~ ^[0-9]+$ ]]; then
+          if (( $3 >= 0 && $3 <= 100 )); then
+            set_position $3
+          else
+            echo "Error: Position must be between 0 and 100."
+            echo "Usage: $0 set_position [0-100]"
+            exit 1
+          fi
+        else
+          echo "Error: Position must be an integer."
+          echo "Usage: $0 set_position [0-100]"
+          exit 1
+        fi
+        ;;
+      *)
+        echo "Error: Unknow parameter."
+        echo "Usage: set [pos]"
+        exit 1
+    esac
+    ;;
   get)
     case $2 in
       temp)
@@ -138,13 +149,25 @@ case $1 in
         current_pos=$(get_status | jq '.current_pos')
         echo "$current_pos%"
         ;;
+      status)
+        case $3 in
+          pretty)
+            get_status | jq '.'
+            ;;
+          *) get_status
+            ;;
+        esac
+        ;;
       state)
         state=$(get_status | jq '.state')
         echo ${state//\"/}
         ;;
+      configuration)
+        get_configuration
+        ;;
       *)
         echo "Error: Unknow parameter."
-        echo "Usage: get [pos|state|temp]"
+        echo "Usage: get [pos|state|status [pretty]|temp]"
         exit 1
     esac
     ;;
