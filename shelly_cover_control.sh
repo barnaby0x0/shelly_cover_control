@@ -84,12 +84,31 @@ add_percent() {
   fi
 }
 
+is_busy() {
+  state=$(get_status | jq -r '.state')
+  if [[ "$state" == "opening" || "$state" == "closing" ]]; then
+    return 0  # Cover is busy (moving)
+  else
+    return 1  # Cover is not busy (stopped)
+  fi
+}
+
+wait_not_busy(){
+  sleep 3 # Needed because state don't arrive immediately
+  echo "Waiting for cover to stop moving..."
+  while is_busy; do
+    echo "Cover is busy, waiting..."
+    sleep 1
+  done
+  echo "Cover has stopped."
+}
+
 # Main script logic
 case $1 in
   set_position)
     if [[ "$2" =~ ^[0-9]+$ ]]; then
       if (( $2 >= 0 && $2 <= 100 )); then
-        set_position $2
+        set_position "$2"
       else
         echo "Error: Position must be between 0 and 100."
         echo "Usage: $0 set_position [0-100]"
@@ -105,7 +124,20 @@ case $1 in
     open_cover
     ;;
   close)
-    close_cover
+    case $2 in
+      quarter)
+        close_cover
+        wait_not_busy
+        add_percent 1
+        ;;
+      half)
+        close_cover
+        wait_not_busy
+        add_percent 2
+        ;;
+      *)
+        close_cover
+    esac
     ;;
   stop)
     stop_cover
